@@ -1,24 +1,26 @@
 package io.demo;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import org.bson.Document;
+
 import java.net.UnknownHostException;
 
 public class Mongo {
 
     MongoClient mongo;
-    DB db;
-    DBCollection usersTable;
-    DBCollection ticketsTable;
+    MongoDatabase db;
+    MongoCollection<Document> usersTable;
+    MongoCollection<Document> ticketsTable;
 
     public void connect() throws UnknownHostException {
         mongo = new MongoClient("localhost", 27017);
     }
 
     public void createDB() {
-        db = mongo.getDB("secondHand");
+        db = mongo.getDatabase("secondHand");
     }
 
     public void createTables() {
@@ -32,55 +34,57 @@ public class Mongo {
         usersTable = db.getCollection("users");
     }
 
-    private void createTicketsTable() {ticketsTable = db.getCollection("tickets");}
+    private void createTicketsTable() {
+        ticketsTable = db.getCollection("tickets");
+    }
 
     public void addUser(User user) {
         /**** Insert ****/
         // create a document to store key and value
-        BasicDBObject document = new BasicDBObject();
+        Document document = new Document();
         document.put("first_name", user.getFirstName());
         document.put("last_name", user.getLastName());
         document.put("email", user.getEmail()); // primary key
-        usersTable.insert(document);
-        System.out.println("user was added to users document successfully");
+        usersTable.insertOne(document);
+        System.out.println("user was added to users collection successfully");
     }
 
     public void addTicket(Ticket ticket) {
-        BasicDBObject document = new BasicDBObject();
-        document.put("publisherId", ticket.getPublisherEmail());
+        Document document = new Document();
+        document.put("publisherEmail", ticket.getPublisherEmail());
         document.put("title", ticket.getTitle());
         document.put("date", ticket.getDate());
-        ticketsTable.insert(document);
-        System.out.println("ticket was added to tickets document successfully");
+        ticketsTable.insertOne(document);
+        System.out.println("ticket was added to tickets collection successfully");
     }
 
-    public void updateUsersTable(String email, String key, String newVal){
+    public void updateUsersDocument(String primaryKey, String key, String newVal){
         BasicDBObject newDocument = new BasicDBObject();
         newDocument.append("$set", new BasicDBObject().append(key, newVal));
-        BasicDBObject searchQuery = new BasicDBObject().append("email", email);
-        usersTable.update(searchQuery, newDocument);
+        BasicDBObject searchQuery = new BasicDBObject().append("email", primaryKey);
+        usersTable.updateOne(searchQuery, newDocument);
         System.out.println("user was updated with new record: " + newVal);
     }
 
-    public void updateTicketsTable(String publisherEmail, String key, String newVal){
+    public void updateTicketDocument(String primaryKey, String key, String newVal){
         BasicDBObject newDocument = new BasicDBObject();
         newDocument.append("$set", new BasicDBObject().append(key, newVal));
-        BasicDBObject searchQuery = new BasicDBObject().append("publisherEmail",publisherEmail);
-        usersTable.update(searchQuery, newDocument);
+        BasicDBObject searchQuery = new BasicDBObject().append("publisherEmail",primaryKey);
+        usersTable.updateOne(searchQuery, newDocument);
         System.out.println("ticket was updated with new record: " + newVal);
     }
 
     public void deleteTicket(String publisherEmail) {
         BasicDBObject document = new BasicDBObject();
         document.put("publisherEmail",publisherEmail);
-        ticketsTable.remove(document);
-        System.out.println("ticket with publisher email " +publisherEmail + " was deleted");
+        ticketsTable.deleteOne(document);
+        System.out.println("ticket with publisher email " + publisherEmail + " was deleted");
     }
 
     public void deleteUser(String email) {
         BasicDBObject document = new BasicDBObject();
         document.put("email", email);
-        usersTable.remove(document);
+        usersTable.deleteOne(document);
         System.out.println("user " + email + " was deleted");
     }
 
